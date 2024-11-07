@@ -1,0 +1,7 @@
+#x64 is for ignoring the various binary intermediate
+#and output files that compilation produces
+x64
+
+#.vs is the folder for intellisense's cache, which
+#changes often and can easily be rebuilt.
+.vs

@@ -1,0 +1,89 @@
+#version 410
+struct DirectionalLight{
+	vec3 color;
+	vec3 direction;
+};
+struct PointLight{
+	vec3 color;
+	vec3 position;
+};
+const int MAX_LIGHTS = 4;
+uniform PointLight pointLights[MAX_LIGHTS];
+
+
+in vec4 vPosition;
+in vec3 vNormal;
+in vec2 vTexCoords;
+in vec3 vTangent;
+in vec3 vBiTangent;
+
+uniform vec3 cameraPosition;
+
+uniform vec3 Ka;
+uniform vec3 Kd;
+uniform vec3 Ks;
+uniform float specularPower;
+
+uniform DirectionalLight directionalLight;
+uniform vec3 AmbientColor;
+
+uniform sampler2D diffuseTex;
+uniform sampler2D specularTex;
+uniform sampler2D normalTex;
+
+out vec4 FragColor;
+
+vec3 getDiffuse(vec3 direction, vec3 colour, vec3 normal);
+vec3 getSpecular(vec3 direction, vec3 color, vec3 normal, vec3 view);
+
+void main() {
+	vec3 N = normalize(vNormal);
+	vec3 L = normalize(directionalLight.direction);
+	vec3 T = normalize(vTangent);
+	vec3 B = normalize(vBiTangent);
+	
+	mat3 TBN = mat3(T,B,N);
+	
+
+	
+	
+	vec3 texDiffuse = texture( diffuseTex, vTexCoords ).rgb;
+	vec3 texSpecular = texture( specularTex, vTexCoords ).rgb;
+	
+	// Transform the texture normal
+	vec3 texNormal = texture( normalTex, vTexCoords ).rgb;
+	N = normalize(TBN * (texNormal * 2 - 1));
+	
+	//calculate diffuse lighting from sunlight
+	vec3 diffuseTotal = getDiffuse(L,directionalLight.color, N);
+	vec3 V = normalize(cameraPosition - vPosition.xyz);
+	
+	// Calculate lighting using transformed normal
+    vec3 specularTotal = getSpecular(L, directionalLight.color, N, V);
+	
+	//Loop through all lights and add to specularTotal + diffuseTotal
+	for (int i=0; i < MAX_LIGHTS; i++){
+		vec3 direction = vPosition.xyz - pointLights[i].position;
+		float distance = length(direction);
+		direction = direction/distance;
+		vec3 color = pointLights[i].color/(distance * distance);
+		diffuseTotal += getDiffuse(direction, color, N);
+		specularTotal += getSpecular(direction, color, N, V);
+	}
+	
+	vec3 ambient = AmbientColor * Ka * texDiffuse;
+	vec3 diffuse = Kd * texDiffuse * diffuseTotal;
+	vec3 specular = Ks * texSpecular * specularTotal;
+	
+	FragColor = vec4(ambient + diffuse + specular, 1);
+}
+
+vec3 getDiffuse(vec3 direction, vec3 color, vec3 normal){
+	return color * max( 0, dot(normal, -direction));
+}
+
+vec3 getSpecular(vec3 direction, vec3 color, vec3 normal, vec3 view){
+	vec3 R = reflect(direction,normal);
+	float specularTerm = pow(max(0,dot(R,view)), specularPower);
+	return specularTerm * color;
+}

@@ -1,0 +1,9 @@
+newmtl Lily
+illum 2
+Ka 1.0000 1.0000 1.0000
+Kd 1.0000 1.0000 1.0000
+Ks 0.0000 0.0000 0.0000
+Ns 10.0000
+map_Kd lily_diffuse.jpeg
+map_Ks lily_spec.png
+bump lily_normal.png
